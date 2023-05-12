@@ -1,0 +1,13 @@
+version: '3'
+services:
+  app:
+    container_name: gin
+    environment:
+      - PORT=${PORT}
+    tty: true
+    build: .
+    ports:
+      - 3005:3005
+    restart: on-failure
+    volumes:
+      - ./:/go/bin/app:cached
