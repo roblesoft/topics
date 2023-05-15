@@ -1,16 +1,25 @@
 package app
 
 import (
+	"os"
+
 	http "github.com/roblesoft/topics/internal/controller/http"
-	"github.com/spf13/viper"
+	entity "github.com/roblesoft/topics/internal/entity"
+	"github.com/roblesoft/topics/internal/usecase"
+	repo "github.com/roblesoft/topics/internal/usecase/repo"
+	"github.com/roblesoft/topics/pkg/db"
 )
 
 func Run() {
-	viper.SetConfigFile("./pkg/envs/.env")
-	viper.ReadInConfig()
+	var (
+		port     = os.Getenv("PORT")
+		dbUrl    = os.Getenv("DB_URL")
+		db       = db.Init(dbUrl)
+		userRepo = &repo.UserRepository{Db: db}
+		service  = usecase.NewService(userRepo)
+		server   = http.NewServer(port, *service)
+	)
 
-	port := viper.Get("PORT").(string)
-
-	server := http.NewServer(port)
+	db.AutoMigrate(&entity.User{})
 	server.Start()
 }

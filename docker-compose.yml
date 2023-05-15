@@ -4,6 +4,13 @@ services:
     container_name: gin
     environment:
       - PORT=${PORT}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+      - DB_URL=${DB_URL}
+      - TOKEN_HOUR_LIFESPAN=${TOKEN_HOUR_LIFESPAN}
     tty: true
     build: .
     ports:
@@ -11,3 +18,31 @@ services:
     restart: on-failure
     volumes:
       - ./:/go/bin/app:cached
+    depends_on:
+      - db
+    networks:
+      - learning
+
+  db:
+    image: postgres:latest
+    container_name: postgres-topics
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - DATABASE_HOST=${DB_HOST}
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - learning
+
+volumes:
+  pg_data:
+
+# Networks to be created to facilitate communication between containers
+networks:
+  learning:
+    driver: bridge
+
