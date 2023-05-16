@@ -11,6 +11,9 @@ services:
       - DATABASE_PORT=${DB_PORT}
       - DB_URL=${DB_URL}
       - TOKEN_HOUR_LIFESPAN=${TOKEN_HOUR_LIFESPAN}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     tty: true
     build: .
     ports:
@@ -20,8 +23,7 @@ services:
       - ./:/go/bin/app:cached
     depends_on:
       - db
-    networks:
-      - learning
+      - redis
 
   db:
     image: postgres:latest
@@ -35,14 +37,18 @@ services:
       - '5432:5432'
     volumes:
       - ./pg_data:/var/lib/postgresql/data
-    networks:
-      - learning
+
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass redistestpass
+    volumes: 
+      - redis:/data
 
 volumes:
   pg_data:
-
-# Networks to be created to facilitate communication between containers
-networks:
-  learning:
-    driver: bridge
+  redis:
+    driver: local
 
