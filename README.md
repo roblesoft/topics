@@ -38,15 +38,15 @@ sender_id
 
 # TASK LIST
 
-- [*] Gorm installation
-- [*] User model
-- [*] Registration Endpoint
-- [*] JWT handler
-- [*] Login endpoint
+- [x] Gorm installation
+- [x] User model
+- [x] Registration Endpoint
+- [x] JWT handler
+- [x] Login endpoint
 
-- [*] gorilla installation
-- [*] message model
-- [*] message creation endpoint
+- [x] gorilla installation
+- [x] message model
+- [x] message creation endpoint
 
 - [] websocket index endpoint
 - [] store pending messages
