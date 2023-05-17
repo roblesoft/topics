@@ -44,9 +44,6 @@ func (server *Server) ChatnetHandler(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(currentusr)
-	fmt.Println(username)
-
 	err = onConnect(ctx, conn, server.RedisClient, username)
 	if err != nil {
 		handleWSError(err, conn)
@@ -69,8 +66,6 @@ loop:
 }
 
 func onConnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, username string) error {
-	fmt.Println("connected from:", conn.RemoteAddr(), "user:", username)
-
 	u, err := usecase.Connect(rdb, username)
 	if err != nil {
 		return err
@@ -83,8 +78,6 @@ func onDisconnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, use
 	closeCh := make(chan struct{})
 
 	conn.SetCloseHandler(func(code int, text string) error {
-		fmt.Println("connection closed for user", username)
-
 		u := connectedUsers[username]
 		if err := u.Disconnect(); err != nil {
 			return err

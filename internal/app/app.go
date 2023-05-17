@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-redis/redis/v7"
 	http "github.com/roblesoft/topics/internal/controller/http"
-	entity "github.com/roblesoft/topics/internal/entity"
 	"github.com/roblesoft/topics/internal/usecase"
 	repo "github.com/roblesoft/topics/internal/usecase/repo"
 	"github.com/roblesoft/topics/pkg/db"
@@ -24,6 +23,5 @@ func Run() {
 		server     = http.NewServer(port, *service, *rdb)
 	)
 
-	db.AutoMigrate(&entity.User{})
 	server.Start()
 }
