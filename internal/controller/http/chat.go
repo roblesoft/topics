@@ -7,29 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/websocket"
+	entity "github.com/roblesoft/topics/internal/entity"
 	"github.com/roblesoft/topics/internal/usecase"
 )
 
-func (server *Server) HealthCheck(ctx *gin.Context) {
-	ctx.Status(200)
-}
-
-var upgrader websocket.Upgrader
-
-var connectedUsers = make(map[string]*usecase.Service)
-
-func H(rdb *redis.Client, fn func(http.ResponseWriter, *http.Request, *redis.Client)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, rdb)
-	}
-}
-
-type msg struct {
-	Content string `json:"content,omitempty"`
-	Channel string `json:"channel,omitempty"`
-	Command int    `json:"command,omitempty"`
-	Err     string `json:"err,omitempty"`
-}
+var (
+	upgrader       websocket.Upgrader
+	connectedUsers = make(map[string]*usecase.Service)
+)
 
 const (
 	commandSubscribe = iota
@@ -37,23 +22,40 @@ const (
 	commandChat
 )
 
+func (server *Server) HealthCheck(ctx *gin.Context) {
+	ctx.Status(200)
+}
+
 func (server *Server) ChatnetHandler(ctx *gin.Context) {
+	var (
+		currentusr = server.CurrentUser(ctx)
+		username   = ctx.Param("user")
+		_, err     = server.Service.GetUserByUsername(username)
+	)
+
+	if err != nil {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
-
 	if err != nil {
 		handleWSError(err, conn)
 		return
 	}
 
-	err = onConnect(ctx.Request, conn, server.RedisClient)
+	fmt.Println(currentusr)
+	fmt.Println(username)
+
+	err = onConnect(ctx, conn, server.RedisClient, username)
 	if err != nil {
 		handleWSError(err, conn)
 		return
 	}
 
-	closeCh := onDisconnect(ctx.Request, conn, server.RedisClient)
+	closeCh := onDisconnect(ctx, conn, server.RedisClient, username)
 
-	onChannelMessage(conn, ctx.Request)
+	onChannelMessage(conn, ctx, *currentusr, username)
 
 loop:
 	for {
@@ -61,16 +63,14 @@ loop:
 		case <-closeCh:
 			break loop
 		default:
-			onUserMessage(conn, ctx.Request, server.RedisClient)
+			onUserMessage(conn, ctx, server.RedisClient, username)
 		}
 	}
 }
 
-func onConnect(r *http.Request, conn *websocket.Conn, rdb *redis.Client) error {
-	username := r.URL.Query()["username"][0]
+func onConnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, username string) error {
 	fmt.Println("connected from:", conn.RemoteAddr(), "user:", username)
 
-	fmt.Println(rdb)
 	u, err := usecase.Connect(rdb, username)
 	if err != nil {
 		return err
@@ -79,11 +79,8 @@ func onConnect(r *http.Request, conn *websocket.Conn, rdb *redis.Client) error {
 	return nil
 }
 
-func onDisconnect(r *http.Request, conn *websocket.Conn, rdb *redis.Client) chan struct{} {
-
+func onDisconnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, username string) chan struct{} {
 	closeCh := make(chan struct{})
-
-	username := r.URL.Query()["username"][0]
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		fmt.Println("connection closed for user", username)
@@ -100,43 +97,40 @@ func onDisconnect(r *http.Request, conn *websocket.Conn, rdb *redis.Client) chan
 	return closeCh
 }
 
-func onUserMessage(conn *websocket.Conn, r *http.Request, rdb *redis.Client) {
-
-	var msg msg
+func onUserMessage(conn *websocket.Conn, ctx *gin.Context, rdb *redis.Client, username string) {
+	var msg entity.Message
 
 	if err := conn.ReadJSON(&msg); err != nil {
 		handleWSError(err, conn)
 		return
 	}
-
-	username := r.URL.Query()["username"][0]
 	u := connectedUsers[username]
 
 	switch msg.Command {
 	case commandSubscribe:
-		if err := u.Subscribe(rdb, msg.Channel); err != nil {
+		if err := u.Subscribe(rdb, username); err != nil {
 			handleWSError(err, conn)
 		}
 	case commandUnsubscribe:
-		if err := u.Unsubscribe(rdb, msg.Channel); err != nil {
+		if err := u.Unsubscribe(rdb, username); err != nil {
 			handleWSError(err, conn)
 		}
 	case commandChat:
-		if err := usecase.Chat(rdb, msg.Channel, msg.Content); err != nil {
+		if err := usecase.Chat(rdb, username, msg.Content); err != nil {
 			handleWSError(err, conn)
 		}
 	}
 }
 
-func onChannelMessage(conn *websocket.Conn, r *http.Request) {
-
-	username := r.URL.Query()["username"][0]
+func onChannelMessage(conn *websocket.Conn, ctx *gin.Context, currentusr entity.User, username string) {
 	u := connectedUsers[username]
-
 	go func() {
 		for m := range u.MessageChan {
+			if currentusr.Username != username {
+				return
+			}
 
-			msg := msg{
+			msg := entity.Message{
 				Content: m.Payload,
 				Channel: m.Channel,
 			}
@@ -145,10 +139,9 @@ func onChannelMessage(conn *websocket.Conn, r *http.Request) {
 				fmt.Println(err)
 			}
 		}
-
 	}()
 }
 
 func handleWSError(err error, conn *websocket.Conn) {
-	_ = conn.WriteJSON(msg{Err: err.Error()})
+	_ = conn.WriteJSON(entity.Message{Err: err.Error()})
 }
