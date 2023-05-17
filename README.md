@@ -8,9 +8,7 @@ POST /api/v1/users/login
 - username
 - password
 
-GET /api/v1/channel/:username
-
-POST /api/v1/channel/:username
+GET /api/v1/users/:username/messages
 - username
 - body
 
@@ -48,7 +46,7 @@ sender_id
 - [x] message model
 - [x] message creation endpoint
 
-- [ ] websocket index endpoint
+- [x] websocket index endpoint
 - [ ] store pending messages
 
 - [ ] public channels
