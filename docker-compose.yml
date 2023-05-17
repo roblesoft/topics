@@ -14,6 +14,7 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_SECRET=${API_SECRET}
     tty: true
     build: .
     ports:
