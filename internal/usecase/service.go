@@ -51,8 +51,12 @@ func NewService(UserRepo *repo.UserRepository) *Service {
 	}
 }
 
-func (s *Service) GetUser(username string) (*entity.User, error) {
-	return s.UserRepo.Get(username)
+func (s *Service) GetUserByUsername(username string) (*entity.User, error) {
+	return s.UserRepo.GetUserByUsername(username)
+}
+
+func (s *Service) GetUserById(id uint) (*entity.User, error) {
+	return s.UserRepo.GetUserById(id)
 }
 
 func (s *Service) CreateUser(b *entity.User) error {
@@ -64,7 +68,7 @@ func (s *Service) verifyPassword(password, hashedPassword string) error {
 }
 
 func (s *Service) LoginCheck(username string, password string) (string, error) {
-	user, err := s.GetUser(username)
+	user, err := s.GetUserByUsername(username)
 
 	if err != nil {
 		return "", err
@@ -87,11 +91,9 @@ func (s *Service) LoginCheck(username string, password string) (string, error) {
 	}
 
 	return token, nil
-
 }
 
 func (service *Service) Subscribe(rdb *redis.Client, channel string) error {
-
 	userChannelsKey := fmt.Sprintf(userChannelFmt, service.username)
 
 	if rdb.SIsMember(userChannelsKey, channel).Val() {
@@ -105,7 +107,6 @@ func (service *Service) Subscribe(rdb *redis.Client, channel string) error {
 }
 
 func (service *Service) Unsubscribe(rdb *redis.Client, channel string) error {
-
 	userChannelsKey := fmt.Sprintf(userChannelFmt, service.username)
 
 	if !rdb.SIsMember(userChannelsKey, channel).Val() {
@@ -119,7 +120,6 @@ func (service *Service) Unsubscribe(rdb *redis.Client, channel string) error {
 }
 
 func (service *Service) connect(rdb *redis.Client) error {
-
 	var c []string
 
 	c1, err := rdb.SMembers(ChannelsKey).Result()
@@ -128,7 +128,6 @@ func (service *Service) connect(rdb *redis.Client) error {
 	}
 	c = append(c, c1...)
 
-	// get all user channels (from DB) and start subscribe
 	c2, err := rdb.SMembers(fmt.Sprintf(userChannelFmt, service.username)).Result()
 	if err != nil {
 		return err
@@ -156,12 +155,9 @@ func (service *Service) connect(rdb *redis.Client) error {
 }
 
 func (service *Service) doConnect(rdb *redis.Client, channels ...string) error {
-	// subscribe all channels in one request
 	pubSub := rdb.Subscribe(channels...)
-	// keep channel handler to be used in unsubscribe
 	service.channelsHandler = pubSub
 
-	// The Listener
 	go func() {
 		service.listening = true
 		fmt.Println("starting the listener for user:", service.username, "on channels:", channels)
@@ -222,7 +218,6 @@ func GetChannels(rdb *redis.Client, username string) ([]string, error) {
 	}
 	c = append(c, c1...)
 
-	// get all user channels (from DB) and start subscribe
 	c2, err := rdb.SMembers(fmt.Sprintf(userChannelFmt, username)).Result()
 	if err != nil {
 		return nil, err

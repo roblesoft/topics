@@ -9,10 +9,18 @@ type UserRepository struct {
 	Db *gorm.DB
 }
 
-func (r *UserRepository) Get(username string) (*entity.User, error) {
+func (r *UserRepository) GetUserByUsername(username string) (*entity.User, error) {
 	var b *entity.User
 
 	err := r.Db.Where("username = ?", username).First(&b).Error
+
+	return b, err
+}
+
+func (r *UserRepository) GetUserById(id uint) (*entity.User, error) {
+	var b *entity.User
+
+	err := r.Db.Where("id = ?", id).First(&b).Error
 
 	return b, err
 }
