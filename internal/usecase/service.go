@@ -77,7 +77,6 @@ func (s *Service) LoginCheck(username string, password string) (string, error) {
 	err = s.verifyPassword(password, user.Password)
 
 	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
-		fmt.Println("verify")
 		fmt.Println(err)
 		return "", err
 	}
@@ -85,7 +84,6 @@ func (s *Service) LoginCheck(username string, password string) (string, error) {
 	token, err := token.GenerateToken(user.ID)
 
 	if err != nil {
-		fmt.Println("generate")
 		fmt.Println(err)
 		return "", err
 	}
