@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	entity "github.com/roblesoft/topics/internal/entity"
+	"github.com/roblesoft/topics/pkg/token"
 )
 
 type UserParams struct {
@@ -14,8 +15,10 @@ type UserParams struct {
 }
 
 func (server *Server) Register(ctx *gin.Context) {
-	var user entity.User
-	var params UserParams
+	var (
+		user   entity.User
+		params UserParams
+	)
 
 	if err := ctx.ShouldBindJSON(&params); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -44,7 +47,6 @@ func (server *Server) Login(ctx *gin.Context) {
 	}
 
 	u := entity.User{}
-
 	u.Username = params.Username
 	u.Password = params.Password
 
@@ -56,4 +58,22 @@ func (server *Server) Login(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func (server *Server) CurrentUser(ctx *gin.Context) *entity.User {
+	user_id, err := token.ExtractTokenID(ctx)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return nil
+	}
+
+	user, err := server.Service.UserRepo.GetUserById(user_id)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return nil
+	}
+
+	return user
 }
