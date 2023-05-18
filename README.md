@@ -47,6 +47,6 @@ sender_id
 - [x] message creation endpoint
 
 - [x] websocket index endpoint
-- [ ] store pending messages
+- [x] message queue
 
 - [ ] public channels
