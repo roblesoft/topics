@@ -46,6 +46,7 @@ func (server *Server) setupRouter() {
 		v1       = api.Group("/v1")
 		users    = v1.Group("/users")
 		messages = users.Group("/:user/messages")
+		channels = v1.Group("/channels")
 	)
 	api.Use(gin.Logger())
 
@@ -55,6 +56,9 @@ func (server *Server) setupRouter() {
 
 	messages.Use(JwtAuthMiddleware())
 	messages.GET("/", server.MessageIndex)
+
+	channels.Use(JwtAuthMiddleware())
+	channels.GET("/:channel", server.GetChannel)
 
 	server.router = router
 }

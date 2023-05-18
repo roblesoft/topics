@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -112,9 +111,6 @@ func onChannelMessage(conn *websocket.Conn, ctx *gin.Context, currentusr entity.
 	u := connectedUsers[username]
 	go func() {
 		for m := range u.MessageChan {
-			if currentusr.Username != username {
-				return
-			}
 
 			msg := entity.Message{
 				Content: m.Payload,
@@ -122,7 +118,7 @@ func onChannelMessage(conn *websocket.Conn, ctx *gin.Context, currentusr entity.
 			}
 
 			if err := conn.WriteJSON(msg); err != nil {
-				fmt.Println(err)
+				handleWSError(err, conn)
 			}
 		}
 	}()
