@@ -3,8 +3,8 @@ run:
 stop:
 	docker-compose down --rmi all
 
-PROJECT_NAME := bookd
-MODULE_NAME := github.com/roblesoft/bookd
+PROJECT_NAME := topics
+MODULE_NAME := github.com/roblesoft/topics
 DEPLOYMENT := $(CURDIR)/
 DOCKER_COMPOSE := $(DEPLOYMENT)/
 DOCKER_COMPOSE_CMD = docker-compose -p $(PROJECT_NAME)
