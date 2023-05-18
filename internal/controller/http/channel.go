@@ -11,10 +11,7 @@ import (
 	"github.com/roblesoft/topics/internal/usecase"
 )
 
-var (
-	upgrader       websocket.Upgrader
-	connectedUsers = make(map[string]*usecase.Service)
-)
+var connectedUsers = make(map[string]*usecase.Service)
 
 const (
 	commandSubscribe = iota
@@ -22,11 +19,7 @@ const (
 	commandChat
 )
 
-func (server *Server) HealthCheck(ctx *gin.Context) {
-	ctx.Status(200)
-}
-
-func (server *Server) ChatnetHandler(ctx *gin.Context) {
+func (server *Server) GetChannel(ctx *gin.Context) {
 	var (
 		currentusr = server.CurrentUser(ctx)
 		username   = ctx.Param("user")
@@ -50,7 +43,7 @@ func (server *Server) ChatnetHandler(ctx *gin.Context) {
 		return
 	}
 
-	closeCh := onDisconnect(ctx, conn, server.RedisClient, username)
+	closeCh := onUserDisconnect(ctx, conn, server.RedisClient, username)
 
 	onChannelMessage(conn, ctx, *currentusr, username)
 
@@ -60,7 +53,7 @@ loop:
 		case <-closeCh:
 			break loop
 		default:
-			onUserMessage(conn, ctx, server.RedisClient, username)
+			onUsersMessage(conn, ctx, server.RedisClient, username)
 		}
 	}
 }
@@ -74,7 +67,7 @@ func onConnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, userna
 	return nil
 }
 
-func onDisconnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, username string) chan struct{} {
+func onUserDisconnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, username string) chan struct{} {
 	closeCh := make(chan struct{})
 
 	conn.SetCloseHandler(func(code int, text string) error {
@@ -90,7 +83,7 @@ func onDisconnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client, use
 	return closeCh
 }
 
-func onUserMessage(conn *websocket.Conn, ctx *gin.Context, rdb *redis.Client, username string) {
+func onUsersMessage(conn *websocket.Conn, ctx *gin.Context, rdb *redis.Client, username string) {
 	var msg entity.Message
 
 	if err := conn.ReadJSON(&msg); err != nil {
@@ -133,8 +126,4 @@ func onChannelMessage(conn *websocket.Conn, ctx *gin.Context, currentusr entity.
 			}
 		}
 	}()
-}
-
-func handleWSError(err error, conn *websocket.Conn) {
-	_ = conn.WriteJSON(entity.Message{Err: err.Error()})
 }
