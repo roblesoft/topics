@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/roblesoft/topics/internal/usecase"
 	"github.com/roblesoft/topics/pkg/token"
 )
@@ -14,11 +15,23 @@ type Server struct {
 	router      *gin.Engine
 	Service     *usecase.Service
 	RedisClient *redis.Client
+	Rabbitmq    *amqp.Connection
 }
 
-func NewServer(port string, service usecase.Service, redisClient redis.Client) *Server {
-	server := &Server{Port: port, Service: &service, RedisClient: &redisClient}
+func NewServer(
+	port string,
+	service usecase.Service,
+	redisClient redis.Client,
+	rabbitConnection amqp.Connection) *Server {
+
+	server := &Server{
+		Port:        port,
+		Service:     &service,
+		RedisClient: &redisClient,
+		Rabbitmq:    &rabbitConnection,
+	}
 	server.setupRouter()
+
 	return server
 }
 
@@ -41,7 +54,7 @@ func (server *Server) setupRouter() {
 	users.POST("/login", server.Login)
 
 	messages.Use(JwtAuthMiddleware())
-	messages.GET("/", server.ChatnetHandler)
+	messages.GET("/", server.MessageIndex)
 
 	server.router = router
 }

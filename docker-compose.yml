@@ -15,6 +15,7 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - API_SECRET=${API_SECRET}
+      - RABBITMQ_ADDRESS=${RABBITMQ_ADDRESS}
     tty: true
     build: .
     ports:
@@ -25,6 +26,7 @@ services:
     depends_on:
       - db
       - redis
+      - rabbitmq
 
   db:
     image: postgres:latest
@@ -47,6 +49,15 @@ services:
     command: redis-server --save 20 1 --loglevel warning --requirepass redistestpass
     volumes: 
       - redis:/data
+
+  rabbitmq:
+    image: rabbitmq:3.9-alpine
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
 
 volumes:
   pg_data:
