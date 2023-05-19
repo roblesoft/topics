@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/websocket"
@@ -20,15 +18,9 @@ const (
 
 func (server *Server) GetChannel(ctx *gin.Context) {
 	var (
-		currentusr = server.CurrentUser(ctx)
-		username   = ctx.Param("user")
-		_, err     = server.Service.GetUserByUsername(username)
+		user        = server.CurrentUser(ctx)
+		channelName = ctx.Param("channel")
 	)
-
-	if err != nil {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
 
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -36,15 +28,15 @@ func (server *Server) GetChannel(ctx *gin.Context) {
 		return
 	}
 
-	err = onConnect(ctx, conn, server.RedisClient, username)
+	err = onConnect(ctx, conn, server.RedisClient, user.Username)
 	if err != nil {
 		handleWSError(err, conn)
 		return
 	}
 
-	closeCh := onUserDisconnect(ctx, conn, server.RedisClient, username)
+	closeCh := onUserDisconnect(ctx, conn, server.RedisClient, user.Username)
 
-	onChannelMessage(conn, ctx, *currentusr, username)
+	onChannelMessage(conn, ctx, user.Username)
 
 loop:
 	for {
@@ -52,7 +44,7 @@ loop:
 		case <-closeCh:
 			break loop
 		default:
-			onUsersMessage(conn, ctx, server.RedisClient, username)
+			onUsersMessage(conn, ctx, server.RedisClient, user.Username, channelName)
 		}
 	}
 }
@@ -82,7 +74,7 @@ func onUserDisconnect(ctx *gin.Context, conn *websocket.Conn, rdb *redis.Client,
 	return closeCh
 }
 
-func onUsersMessage(conn *websocket.Conn, ctx *gin.Context, rdb *redis.Client, username string) {
+func onUsersMessage(conn *websocket.Conn, ctx *gin.Context, rdb *redis.Client, username string, channel string) {
 	var msg entity.Message
 
 	if err := conn.ReadJSON(&msg); err != nil {
@@ -93,21 +85,21 @@ func onUsersMessage(conn *websocket.Conn, ctx *gin.Context, rdb *redis.Client, u
 
 	switch msg.Command {
 	case commandSubscribe:
-		if err := u.Subscribe(rdb, username); err != nil {
+		if err := u.Subscribe(rdb, channel); err != nil {
 			handleWSError(err, conn)
 		}
 	case commandUnsubscribe:
-		if err := u.Unsubscribe(rdb, username); err != nil {
+		if err := u.Unsubscribe(rdb, channel); err != nil {
 			handleWSError(err, conn)
 		}
 	case commandChat:
-		if err := usecase.Chat(rdb, username, msg.Content); err != nil {
+		if err := usecase.Chat(rdb, channel, msg.Content); err != nil {
 			handleWSError(err, conn)
 		}
 	}
 }
 
-func onChannelMessage(conn *websocket.Conn, ctx *gin.Context, currentusr entity.User, username string) {
+func onChannelMessage(conn *websocket.Conn, ctx *gin.Context, username string) {
 	u := connectedUsers[username]
 	go func() {
 		for m := range u.MessageChan {
