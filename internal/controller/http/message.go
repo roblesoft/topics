@@ -69,8 +69,22 @@ func consumeMessage(username string, currentusr string, connection *amqp.Connect
 
 	defer channel.Close()
 
+	queue, err := channel.QueueDeclare(
+		currentusr, // name
+		false,      // durable
+		false,      // auto delete
+		false,      // exclusive
+		false,      // no wait
+		nil,        // args
+	)
+
+	if err != nil {
+		handleWSError(err, conn)
+		return
+	}
+
 	msgs, err := channel.Consume(
-		currentusr, // queue
+		queue.Name, // queue
 		"",         // consumer
 		true,       // auto ack
 		false,      // exclusive

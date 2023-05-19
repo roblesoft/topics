@@ -22,3 +22,7 @@ local.run: ## Run Local environment
 local.stop: ## Run Local environment
 	@echo "Run local environment..."
 	$(DOCKER_COMPOSE_CMD) -f $(DOCKER_COMPOSE)/docker-compose.yml down --rmi all
+
+local.test: ## Run test
+	@echo "Run testing"
+	go test -v ./...

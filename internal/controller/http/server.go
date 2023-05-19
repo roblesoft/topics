@@ -12,7 +12,7 @@ import (
 
 type Server struct {
 	Port        string
-	router      *gin.Engine
+	Router      *gin.Engine
 	Service     *usecase.Service
 	RedisClient *redis.Client
 	Rabbitmq    *amqp.Connection
@@ -33,10 +33,6 @@ func NewServer(
 	server.setupRouter()
 
 	return server
-}
-
-func (server *Server) Router() *gin.Engine {
-	return server.router
 }
 
 func (server *Server) setupRouter() {
@@ -60,11 +56,11 @@ func (server *Server) setupRouter() {
 	channels.Use(JwtAuthMiddleware())
 	channels.GET("/:channel", server.GetChannel)
 
-	server.router = router
+	server.Router = router
 }
 
-func (r *Server) Start() {
-	r.router.Run(r.Port)
+func (server *Server) Start() {
+	server.Router.Run(server.Port)
 }
 
 func JwtAuthMiddleware() gin.HandlerFunc {
