@@ -117,6 +117,11 @@ Build project
 make local.build
 ```
 
+Run Tests
+```bash
+make local.test
+```
+
 # DEPENDENCIES
 
 * Gorilla

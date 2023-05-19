@@ -1,38 +1,24 @@
-package mock
+package dbmock
 
 import (
 	"database/sql"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/gin-gonic/gin"
-	"github.com/roblesoft/topics/internal/usecase"
-	repo "github.com/roblesoft/topics/internal/usecase/repo"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type TestSuiteConnections struct {
-	Port    string
-	Db      *gorm.DB
-	Mock    sqlmock.Sqlmock
-	Service *usecase.Service
+	Port string
+	Db   *gorm.DB
+	Mock sqlmock.Sqlmock
 }
 
-func NewTestSuit(port string) *TestSuiteConnections {
+func NewTestSuit() *TestSuiteConnections {
+	service := &TestSuiteConnections{}
+	service.SetupMockDb()
 
-	server := &TestSuiteConnections{Port: port}
-
-	server.SetUpRouter()
-
-	return server
-}
-
-func (ts *TestSuiteConnections) SetUpRouter() {
-	gin.SetMode(gin.TestMode)
-	ts.SetupMockDb()
-
-	userRepo := &repo.UserRepository{Db: ts.Db}
-	ts.Service = usecase.NewService(userRepo)
+	return service
 }
 
 func (ts *TestSuiteConnections) SetupMockDb() {
