@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/websocket"
 	amqp "github.com/rabbitmq/amqp091-go"
 	entity "github.com/roblesoft/topics/internal/entity"
@@ -32,11 +31,14 @@ func (server *Server) MessageIndex(ctx *gin.Context) {
 		return
 	}
 
-	if username == currentusr.Username {
-		consumeMessage(username, currentusr.Username, server.Rabbitmq, conn)
-	}
+	var (
+		queue, channel = connectChannel(username, currentusr.Username, server.Rabbitmq, conn)
+		closeCh        = onDisconnect(conn, channel)
+	)
 
-	closeCh := onDisconnect(conn)
+	if username == currentusr.Username {
+		consumeMessage(channel, queue, conn)
+	}
 
 loop:
 	for {
@@ -44,44 +46,55 @@ loop:
 		case <-closeCh:
 			break loop
 		default:
-			onUserMessage(conn, ctx, server.RedisClient, username, currentusr.Username, server.Rabbitmq)
+			onUserMessage(currentusr.Username, channel, queue, conn)
 		}
 	}
 }
 
-func onDisconnect(conn *websocket.Conn) chan struct{} {
+func onDisconnect(conn *websocket.Conn, channel *amqp.Channel) chan struct{} {
 	closeCh := make(chan struct{})
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		close(closeCh)
+		channel.Close()
 		return nil
 	})
 
 	return closeCh
 }
 
-func consumeMessage(username string, currentusr string, connection *amqp.Connection, conn *websocket.Conn) {
+func connectChannel(
+	username string,
+	currentusr string,
+	connection *amqp.Connection,
+	conn *websocket.Conn) (*amqp.Queue, *amqp.Channel) {
+
 	channel, err := connection.Channel()
+
 	if err != nil {
 		handleWSError(err, conn)
-		return
+		return nil, nil
 	}
 
-	defer channel.Close()
-
 	queue, err := channel.QueueDeclare(
-		currentusr, // name
-		false,      // durable
-		false,      // auto delete
-		false,      // exclusive
-		false,      // no wait
-		nil,        // args
+		username, // name
+		false,    // durable
+		false,    // auto delete
+		false,    // exclusive
+		false,    // no wait
+		nil,      // args
 	)
 
 	if err != nil {
 		handleWSError(err, conn)
-		return
+		return nil, nil
 	}
+
+	return &queue, channel
+}
+
+func consumeMessage(channel *amqp.Channel, queue *amqp.Queue, conn *websocket.Conn) {
+	defer channel.Close()
 
 	msgs, err := channel.Consume(
 		queue.Name, // queue
@@ -117,30 +130,10 @@ func consumeMessage(username string, currentusr string, connection *amqp.Connect
 }
 
 func publishMessage(
-	username string,
 	msg entity.Message,
-	connection *amqp.Connection,
+	channel *amqp.Channel,
+	queue *amqp.Queue,
 	conn *websocket.Conn) {
-
-	channel, err := connection.Channel()
-	if err != nil {
-		handleWSError(err, conn)
-	}
-	defer channel.Close()
-
-	queue, err := channel.QueueDeclare(
-		username, // name
-		false,    // durable
-		false,    // auto delete
-		false,    // exclusive
-		false,    // no wait
-		nil,      // args
-	)
-
-	if err != nil {
-		handleWSError(err, conn)
-		return
-	}
 
 	body, err := json.Marshal(msg)
 	if err != nil {
@@ -158,6 +151,7 @@ func publishMessage(
 			Body:        body,
 		},
 	)
+
 	if err != nil {
 		handleWSError(err, conn)
 		return
@@ -167,23 +161,19 @@ func publishMessage(
 }
 
 func onUserMessage(
-	conn *websocket.Conn,
-	ctx *gin.Context,
-	rdb *redis.Client,
-	username string,
 	currentusr string,
-	connection *amqp.Connection) {
+	channel *amqp.Channel,
+	queue *amqp.Queue,
+	conn *websocket.Conn) {
 
 	var msg entity.Message
 
-	msg.Username = currentusr
 	if err := conn.ReadJSON(&msg); err != nil {
 		handleWSError(err, conn)
 		return
 	}
 
-	if currentusr != username {
-		publishMessage(username, msg, connection, conn)
-		return
-	}
+	msg.Username = currentusr
+
+	publishMessage(msg, channel, queue, conn)
 }
