@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topics-config
+  namespace: default
+data:
+  PORT: "3005"
+  RABBITMQ_ADDRESS: amqp://guest:guest@rabbitmq:5672/
+  DB_URL: postgres://uriel:password@topics-postgres:32598/topics
+  TOKEN_HOUR_LIFESPAN: "3"
+  API_SECRET: testsecret
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: redistestpass
+  DB_HOST: topics-postgres
+  DB_DRIVER: postgres
+  DB_USER: uriel
+  DB_PASSWORD: password
+  DB_NAME: topics
+  DB_PORT: "5432"
+

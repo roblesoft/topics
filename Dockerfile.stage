@@ -27,4 +27,6 @@ COPY --from=builder /go/bin/topics/app /app/topics
 
 COPY ./config ./config
 
+EXPOSE 3005
+
 ENTRYPOINT ["./topics"]

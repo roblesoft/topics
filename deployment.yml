@@ -1,0 +1,97 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  topics
+  namespace: default
+  labels:
+    app:  topics
+spec:
+  selector:
+    matchLabels:
+      app: topics
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app:  topics
+    spec:
+      containers:
+      - name:  topics
+        image:  roblesoft/topics_app:1.1.0
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 500m
+            memory: 400Mi
+        env:
+          - name: PORT
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: PORT
+          - name: RABBITMQ_ADDRESS
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: RABBITMQ_ADDRESS
+          - name: DB_URL
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_URL
+          - name: TOKEN_HOUR_LIFESPAN
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: TOKEN_HOUR_LIFESPAN
+          - name: REDIS_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: REDIS_HOST
+          - name: REDIS_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: REDIS_PORT
+          - name: REDIS_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: REDIS_PASSWORD
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_HOST
+          - name: DB_DRIVER
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_DRIVER
+          - name: DB_USER
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_USER
+          - name: DB_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_PASSWORD
+          - name: DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_NAME
+          - name: DB_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: topics-config
+                key: DB_PORT
+        ports:
+        - containerPort:  3005
+          name:  myjob
+---
+
