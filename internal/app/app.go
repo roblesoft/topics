@@ -25,6 +25,12 @@ func Run() {
 		server          = http.NewServer(port, *service, *rdb, *connection)
 	)
 
+	fmt.Println(redis_addr)
+	fmt.Println(rdb)
+	fmt.Println(port)
+	fmt.Println(dbUrl)
+	fmt.Println(db)
+	fmt.Println(connection)
 	if err != nil {
 		panic(err)
 	}
