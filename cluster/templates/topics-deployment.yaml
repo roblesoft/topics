@@ -18,12 +18,8 @@ spec:
     spec:
       containers:
       - name:  topics
-        image:  roblesoft/topics_app:1.1.0
+        image:  roblesoft/topics_app:1.2.0
         imagePullPolicy: Always
-        resources:
-          requests:
-            cpu: 500m
-            memory: 400Mi
         env:
           - name: PORT
             valueFrom:
@@ -91,7 +87,7 @@ spec:
                 name: topics-config
                 key: DB_PORT
         ports:
-        - containerPort:  3005
-          name:  myjob
+          - containerPort:  3005
+            name:  http
 ---
 

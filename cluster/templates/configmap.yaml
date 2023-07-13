@@ -6,7 +6,7 @@ metadata:
 data:
   PORT: "3005"
   RABBITMQ_ADDRESS: amqp://guest:guest@topics-rabbitmq:5672/
-  DB_URL: postgresql://uriel:password@topics-postgres:32117/topics
+  DB_URL: postgresql://uriel:password@topics-postgres:5432/topics
   TOKEN_HOUR_LIFESPAN: "3"
   API_SECRET: testsecret
   REDIS_HOST: redis

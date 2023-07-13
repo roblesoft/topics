@@ -13,24 +13,28 @@ import (
 )
 
 func Run() {
-	var (
-		redis_addr      = fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
-		rdb             = redis.NewClient(&redis.Options{Addr: redis_addr, Password: os.Getenv("REDIS_PASSWORD")})
-		port            = os.Getenv("PORT")
-		dbUrl           = os.Getenv("DB_URL")
-		db              = db.Init(dbUrl)
-		connection, err = amqp.Dial(os.Getenv("RABBITMQ_ADDRESS"))
-		userRepo        = &repo.UserRepository{Db: db}
-		service         = usecase.NewService(userRepo)
-		server          = http.NewServer(port, *service, *rdb, *connection)
-	)
+	var dbUrl = os.Getenv("DB_URL")
+	var db = db.Init(dbUrl)
+	fmt.Println(dbUrl)
+	fmt.Println(db)
+
+	var redis_addr = fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+	var rdb = redis.NewClient(&redis.Options{Addr: redis_addr, Password: os.Getenv("REDIS_PASSWORD")})
 
 	fmt.Println(redis_addr)
 	fmt.Println(rdb)
+
+	var port = os.Getenv("PORT")
+
+	var connection, err = amqp.Dial(os.Getenv("RABBITMQ_ADDRESS"))
+	var userRepo = &repo.UserRepository{Db: db}
+
 	fmt.Println(port)
-	fmt.Println(dbUrl)
-	fmt.Println(db)
 	fmt.Println(connection)
+
+	var service = usecase.NewService(userRepo)
+	var server = http.NewServer(port, *service, *rdb, *connection)
+
 	if err != nil {
 		panic(err)
 	}

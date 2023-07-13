@@ -10,4 +10,4 @@ spec:                                         # Access mode and resource limits
     - ReadWriteMany                           # ReadWriteMany means the volume can be mounted as read-write by many Nodes
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
